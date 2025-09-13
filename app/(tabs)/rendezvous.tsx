@@ -1,19 +1,64 @@
-import React, { useState } from "react";
-import { StyleSheet, View } from "react-native";
-import { Button, Provider, Text } from "react-native-paper";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { Alert, StyleSheet, View } from "react-native";
+import { Button, Provider, Text, TextInput } from "react-native-paper";
 import { DatePickerInput, fr, registerTranslation } from "react-native-paper-dates";
 
 registerTranslation("fr", fr);
 
 export default function RendezVous() {
   const [date, setDate] = useState<Date | undefined>(undefined);
+  const [userId, setUserId] = useState<string | null>(null);
+  const router = useRouter();
+
+  // Charger l’utilisateur stocké
+  useEffect(() => {
+    const loadUser = async () => {
+      const storedUser = await AsyncStorage.getItem("user");
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        console.log("Utilisateur connecté :", parsedUser);
+        setUserId(parsedUser.id.toString());
+      }
+    };
+    loadUser();
+  }, []);
+
+
+  // Fonction de confirmation RDV
+  const handleConfirm = async () => {
+    if (!userId) {
+      // Pas connecté → redirige vers login
+      Alert.alert("🔑 Connexion requise", "Veuillez vous connecter pour continuer.");
+      router.push("/login"); // Assure-toi que ton login est bien dans app/login.tsx
+      return;
+    }
+
+    if (!date) {
+      Alert.alert("⚠️ Erreur", "Veuillez choisir une date.");
+      return;
+    }
+
+    // Sinon, confirmation du RDV
+    console.log("📌 RDV confirmé :", { date, userId });
+    Alert.alert("✅ Succès", `RDV confirmé pour l'utilisateur ${userId}`);
+  };
 
   return (
     <Provider>
       <View style={styles.container}>
         <Text style={styles.title}>Prendre un rendez-vous</Text>
 
-        {/* Champ de date amélioré */}
+        {/* Champ utilisateur */}
+        <TextInput
+          label="ID Utilisateur"
+          value={userId ?? ""}
+          editable={false} // ou disabled
+          style={styles.input}
+        />
+
+        {/* Champ date */}
         <DatePickerInput
           locale="fr"
           label="Sélectionnez une date"
@@ -21,12 +66,12 @@ export default function RendezVous() {
           onChange={(d) => setDate(d)}
           inputMode="start"
           mode="outlined"
-          style={styles.dateInput}
+          style={styles.input}
         />
 
         <Button
           mode="contained"
-          onPress={() => console.log("Date choisie:", date)}
+          onPress={handleConfirm}
           style={styles.button}
         >
           Confirmer
@@ -50,7 +95,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#333",
   },
-  dateInput: {
+  input: {
     marginBottom: 20,
   },
   button: {

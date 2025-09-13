@@ -15,14 +15,16 @@ export default function LoginScreen() {
         email,
         mot_de_passe: motDePasse,
       });
-      console.log(response.data);
       const { token, user } = response.data;
+      console.log(response.data)
+      // Stocke le token ET l'utilisateur
       await AsyncStorage.setItem("token", token);
+      await AsyncStorage.setItem("user", JSON.stringify(user));
 
       Alert.alert("✅ Connexion réussie", `Bienvenue ${user.prenom} ${user.nom}`);
 
       // Redirige vers les tabs
-      router.replace("/(tabs)/");
+      router.replace("/(tabs)/rendezvous");
     } catch (error: any) {
       Alert.alert(
         "❌ Échec de connexion",
@@ -30,6 +32,8 @@ export default function LoginScreen() {
       );
     }
   };
+
+
 
   return (
     <View style={styles.container}>
