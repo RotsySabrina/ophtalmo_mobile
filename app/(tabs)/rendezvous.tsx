@@ -1,17 +1,22 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { Alert, StyleSheet, View } from "react-native";
 import { Button, Provider, Text, TextInput } from "react-native-paper";
-import { DatePickerInput, fr, registerTranslation } from "react-native-paper-dates";
-
-registerTranslation("fr", fr);
+import { DatePickerInput } from "react-native-paper-dates";
 
 export default function RendezVous() {
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [userId, setUserId] = useState<string | null>(null);
   const router = useRouter();
+  const medecins = [
+    { id: 1, nom: "Rakoto", prenom: "Jean" },
+    { id: 2, nom: "Rajaonarivelo", prenom: "Marie" },
+    { id: 3, nom: "Andriantsitohaina", prenom: "Pierre" },
+  ];
 
+  const [selectedMedecin, setSelectedMedecin] = useState<number | null>(null);
   // Charger l’utilisateur stocké
   useEffect(() => {
     const loadUser = async () => {
@@ -57,6 +62,28 @@ export default function RendezVous() {
           editable={false} // ou disabled
           style={styles.input}
         />
+
+        <Text style={styles.label}>Choisir un médecin :</Text>
+        <Picker
+          selectedValue={selectedMedecin}
+          onValueChange={(itemValue) => setSelectedMedecin(itemValue)}
+          style={styles.picker}
+        >
+          <Picker.Item label="-- Sélectionner --" value={null} />
+          {medecins.map((medecin) => (
+            <Picker.Item
+              key={medecin.id}
+              label={`${medecin.nom} ${medecin.prenom}`}
+              value={medecin.id}
+            />
+          ))}
+        </Picker>
+
+        {selectedMedecin && (
+          <Text style={styles.selectedText}>
+            Médecin sélectionné : {medecins.find(m => m.id === selectedMedecin)?.prenom} {medecins.find(m => m.id === selectedMedecin)?.nom}
+          </Text>
+        )}
 
         {/* Champ date */}
         <DatePickerInput

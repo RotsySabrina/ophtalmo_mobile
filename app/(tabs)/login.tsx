@@ -3,11 +3,13 @@ import axios from "axios";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, Button, StyleSheet, Text, TextInput, View } from "react-native";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
   const router = useRouter();
+  const { user, setUser, logout, loading } = useAuth();
 
   const handleLogin = async () => {
     try {
@@ -32,8 +34,22 @@ export default function LoginScreen() {
       );
     }
   };
-
-
+  if (loading) return <Text style={styles.loading}>Chargement...</Text>;
+  if (user) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.title}>👤 Profil</Text>
+        <Text style={styles.profileText}>Bonjour {user.prenom} {user.nom}</Text>
+        <Button
+          title="Se déconnecter"
+          onPress={async () => {
+            await logout();
+            router.replace("/login"); // revient à login après déconnexion
+          }}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
