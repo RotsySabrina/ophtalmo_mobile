@@ -1,133 +1,193 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Picker } from "@react-native-picker/picker";
-import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Alert, StyleSheet, View } from "react-native";
-import { Button, Provider, Text, TextInput } from "react-native-paper";
-import { DatePickerInput } from "react-native-paper-dates";
+import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
+import { Picker } from "@react-native-picker/picker";
+import { Calendar } from 'react-native-calendars';
+import { fetchMedecins, fetchCreneauxParMedecin, addRdv} from "../api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function RendezVous() {
-  const [date, setDate] = useState<Date | undefined>(undefined);
-  const [userId, setUserId] = useState<string | null>(null);
-  const router = useRouter();
-  const medecins = [
-    { id: 1, nom: "Rakoto", prenom: "Jean" },
-    { id: 2, nom: "Rajaonarivelo", prenom: "Marie" },
-    { id: 3, nom: "Andriantsitohaina", prenom: "Pierre" },
-  ];
-
+  const [medecins, setMedecins] = useState<any[]>([]);
   const [selectedMedecin, setSelectedMedecin] = useState<number | null>(null);
-  // Charger l’utilisateur stocké
+  const [creneaux, setCreneaux] = useState<any[]>([]);
+  const [markedDates, setMarkedDates] = useState<any>({});
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [creneauxDisponibles, setCreneauxDisponibles] = useState<any[]>([]);
+
+  const [userId, setUserId] = useState<number | null>(null);
+
   useEffect(() => {
     const loadUser = async () => {
       const storedUser = await AsyncStorage.getItem("user");
       if (storedUser) {
         const parsedUser = JSON.parse(storedUser);
-        console.log("Utilisateur connecté :", parsedUser);
-        setUserId(parsedUser.id.toString());
+        //console.log("Utilisateur connecté :", parsedUser);
+        setUserId(parsedUser.id);
       }
     };
     loadUser();
   }, []);
 
+  useEffect(() => {
+    fetchMedecins().then(data => setMedecins(data));
+  }, []);
 
-  // Fonction de confirmation RDV
-  const handleConfirm = async () => {
-    if (!userId) {
-      // Pas connecté → redirige vers login
-      Alert.alert("🔑 Connexion requise", "Veuillez vous connecter pour continuer.");
-      router.push("/login"); // Assure-toi que ton login est bien dans app/login.tsx
-      return;
+  useEffect(() => {
+    if (selectedMedecin) {
+      fetchCreneauxParMedecin(selectedMedecin).then((data) => {
+        //console.log("Créneaux disponibles :", data);
+        setCreneaux(data);
+
+        const marked: any = {};
+        data.forEach((creneau: any) => {
+          const [day, month, yearTime] = creneau.debut.split('/');
+          const year = yearTime.split(' ')[0];
+          const date = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+          
+          marked[date] = { 
+            marked: true, 
+            dotColor: "blue", 
+            selected: selectedDate === date,
+            selectedColor: "#00adf5"
+          };
+        });
+        setMarkedDates(marked);
+      });
     }
+  }, [selectedMedecin, selectedDate]);
 
-    if (!date) {
-      Alert.alert("⚠️ Erreur", "Veuillez choisir une date.");
-      return;
-    }
+  const choisirDate = (date: string) => {
+    setSelectedDate(date);
+    const [year, month, day] = date.split('-');
+    const dateFormatted = `${day}/${month}/${year}`;
+    
+    const creneauxDuJour = creneaux.filter((c: any) => 
+      c.debut.startsWith(dateFormatted)
+    );
+    
+    setCreneauxDisponibles(creneauxDuJour);
+  };
 
-    // Sinon, confirmation du RDV
-    console.log("📌 RDV confirmé :", { date, userId });
-    Alert.alert("✅ Succès", `RDV confirmé pour l'utilisateur ${userId}`);
+  const choisirCreneau = (creneau: any) => {
+    const timePart = creneau.debut.split(' ')[1];
+    const fullDateHeure = `${selectedDate} ${timePart}`; 
+  
+    Alert.alert(
+      "Confirmer le rendez-vous",
+      `Êtes-vous sûr de vouloir prendre rendez-vous le ${selectedDate} de ${creneau.debut.split(' ')[1]} à ${creneau.fin.split(' ')[1]} ?`,
+      [
+        { text: "Annuler", style: "cancel" },
+        { 
+          text: "Confirmer", 
+          onPress: async () => {
+            if (!userId || !selectedMedecin || !fullDateHeure) {
+              Alert.alert("Erreur", "Données manquantes pour le rendez-vous.");
+              return;
+            }
+            try {
+              const newRdv = await addRdv(
+                userId, 
+                selectedMedecin, 
+                fullDateHeure
+              );
+
+              console.log("Rendez-vous créé :", newRdv);
+              Alert.alert("Succès", "Votre rendez-vous a été confirmé !");
+              // Optionnel : naviguer vers une autre page ou rafraîchir la liste des rendez-vous
+            } catch (error) {
+              console.error("Échec de la création du rendez-vous ....:", error);
+              Alert.alert("Erreur", "Une erreur est survenue lors de la confirmation du rendez-vous.");
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const formaterHeure = (datetime: string) => {
+    return datetime.split(' ')[1].substring(0, 5);
   };
 
   return (
-    <Provider>
-      <View style={styles.container}>
-        <Text style={styles.title}>Prendre un rendez-vous</Text>
+    <ScrollView 
+      style={{ flex: 1 }}
+      contentContainerStyle={{ padding: 20 }}
+      showsVerticalScrollIndicator={true}
+    >
+      <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 20 }}>
+        Prendre un rendez-vous
+      </Text>
 
-        {/* Champ utilisateur */}
-        <TextInput
-          label="ID Utilisateur"
-          value={userId ?? ""}
-          editable={false} // ou disabled
-          style={styles.input}
-        />
+      {/* Liste déroulante des médecins */}
+      <Text style={{ marginBottom: 10, fontSize: 16 }}>Choisissez un médecin :</Text>
+      <Picker
+        selectedValue={selectedMedecin}
+        onValueChange={(itemValue) => {
+          setSelectedMedecin(itemValue);
+          setSelectedDate(null);
+          setCreneauxDisponibles([]);
+        }}
+        style={{ marginBottom: 20 }}
+      >
+        <Picker.Item label="-- Sélectionner un médecin --" value={null} />
+        {medecins.map((m) => (
+          <Picker.Item
+            key={m.id}
+            label={`${m.nom} ${m.prenom}`}
+            value={m.id}
+          />
+        ))}
+      </Picker>
 
-        <Text style={styles.label}>Choisir un médecin :</Text>
-        <Picker
-          selectedValue={selectedMedecin}
-          onValueChange={(itemValue) => setSelectedMedecin(itemValue)}
-          style={styles.picker}
-        >
-          <Picker.Item label="-- Sélectionner --" value={null} />
-          {medecins.map((medecin) => (
-            <Picker.Item
-              key={medecin.id}
-              label={`${medecin.nom} ${medecin.prenom}`}
-              value={medecin.id}
-            />
-          ))}
-        </Picker>
-
-        {selectedMedecin && (
-          <Text style={styles.selectedText}>
-            Médecin sélectionné : {medecins.find(m => m.id === selectedMedecin)?.prenom} {medecins.find(m => m.id === selectedMedecin)?.nom}
+      {/* Calendrier avec créneaux disponibles */}
+      {selectedMedecin && (
+        <View>
+          <Text style={{ marginBottom: 10, fontSize: 16 }}>
+            Choisissez une date disponible :
           </Text>
-        )}
+          <Calendar
+            markedDates={markedDates}
+            onDayPress={(day) => choisirDate(day.dateString)}
+            theme={{
+              selectedDayBackgroundColor: '#00adf5',
+              todayTextColor: '#00adf5',
+              arrowColor: '#00adf5',
+            }}
+          />
+        </View>
+      )}
 
-        {/* Champ date */}
-        <DatePickerInput
-          locale="fr"
-          label="Sélectionnez une date"
-          value={date}
-          onChange={(d) => setDate(d)}
-          inputMode="start"
-          mode="outlined"
-          style={styles.input}
-        />
+      {/* Affichage des créneaux horaires */}
+      {selectedDate && creneauxDisponibles.length > 0 && (
+        <View style={{ marginTop: 20 }}>
+          <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 10 }}>
+            Créneaux disponibles pour le {selectedDate} :
+          </Text>
+          {creneauxDisponibles.map((creneau, index) => (
+            <TouchableOpacity
+              key={index}
+              onPress={() => choisirCreneau(creneau)}
+              style={{
+                padding: 15,
+                marginVertical: 5,
+                backgroundColor: '#e3f2fd',
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: '#bbdefb'
+              }}
+            >
+              <Text style={{ fontSize: 16, textAlign: 'center' }}>
+                {formaterHeure(creneau.debut)} - {formaterHeure(creneau.fin)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
 
-        <Button
-          mode="contained"
-          onPress={handleConfirm}
-          style={styles.button}
-        >
-          Confirmer
-        </Button>
-      </View>
-    </Provider>
+      {selectedDate && creneauxDisponibles.length === 0 && (
+        <Text style={{ marginTop: 20, color: 'gray', textAlign: 'center' }}>
+          Aucun créneau disponible pour cette date
+        </Text>
+      )}
+    </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: "#f9f9f9",
-    justifyContent: "center",
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
-    color: "#333",
-  },
-  input: {
-    marginBottom: 20,
-  },
-  button: {
-    marginTop: 10,
-    borderRadius: 8,
-    paddingVertical: 6,
-  },
-});

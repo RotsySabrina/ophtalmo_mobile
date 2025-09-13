@@ -1,54 +1,51 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { Alert, Button, StyleSheet, Text, TextInput, View } from "react-native";
-import { useAuth } from "../../hooks/useAuth";
+import { useAuth } from "../hooks/useAuth";
+import { login } from "./api";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
   const router = useRouter();
   const { user, setUser, logout, loading } = useAuth();
 
   const handleLogin = async () => {
+    if (!email || !motDePasse) {
+      Alert.alert("⚠️ Champs manquants", "Veuillez entrer votre email et mot de passe.");
+      return;
+    }
+
+    setIsLoading(true);
     try {
-      const response = await axios.post("http://localhost:5000/auth/login", {
-        email,
-        mot_de_passe: motDePasse,
-      });
-      const { token, user } = response.data;
-      console.log(response.data)
-      // Stocke le token ET l'utilisateur
+      const { token, user } = await login(email, motDePasse);
+
       await AsyncStorage.setItem("token", token);
       await AsyncStorage.setItem("user", JSON.stringify(user));
 
+      setUser(user);
+
       Alert.alert("✅ Connexion réussie", `Bienvenue ${user.prenom} ${user.nom}`);
 
-      // Redirige vers les tabs
-      router.replace("/(tabs)/rendezvous");
+      router.replace("/(tabs)");
     } catch (error: any) {
+      console.log("Erreur détaillée login:", error.response?.data || error.message || error);
       Alert.alert(
         "❌ Échec de connexion",
-        error.response?.data?.message || "Erreur serveur"
+        error.response?.data?.message || error.message || "Erreur inconnue"
       );
+    } finally {
+      setIsLoading(false);
     }
   };
-  if (loading) return <Text style={styles.loading}>Chargement...</Text>;
+
+  // Déjà connecté → redirige automatiquement
   if (user) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.title}>👤 Profil</Text>
-        <Text style={styles.profileText}>Bonjour {user.prenom} {user.nom}</Text>
-        <Button
-          title="Se déconnecter"
-          onPress={async () => {
-            await logout();
-            router.replace("/login"); // revient à login après déconnexion
-          }}
-        />
-      </View>
-    );
+    router.replace("/(tabs)");
+    return null;
   }
 
   return (
@@ -61,6 +58,7 @@ export default function LoginScreen() {
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
+        keyboardType="email-address"
       />
       <TextInput
         style={styles.input}
@@ -70,7 +68,11 @@ export default function LoginScreen() {
         secureTextEntry
       />
 
-      <Button title="Se connecter" onPress={handleLogin} />
+      {isLoading ? (
+        <Text style={styles.loading}>Connexion en cours...</Text>
+      ) : (
+        <Button title="Se connecter" onPress={handleLogin} disabled={!email || !motDePasse} />
+      )}
     </View>
   );
 }
@@ -85,4 +87,5 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     borderRadius: 5,
   },
+  loading: { textAlign: "center", marginTop: 10, fontStyle: "italic" },
 });

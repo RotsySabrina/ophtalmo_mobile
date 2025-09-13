@@ -1,7 +1,10 @@
 import React from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View, Button  } from "react-native";
+import { useRouter } from "expo-router";
 
 export default function HomeScreen() {
+  const router = useRouter();
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Bienvenue sur l’appli Ophtalmo</Text>
@@ -11,6 +14,16 @@ export default function HomeScreen() {
         style={styles.image}
         resizeMode="contain" // ou "cover" selon rendu souhaité
       />
+      {/* Bouton login */}
+      {/*<View style={{ marginTop: 20 }}>
+        <Button
+          title="Se connecter"
+          onPress={() => {
+            console.log("👉 Redirection vers LoginScreen");
+            router.push("/login");
+          }}
+        />
+      </View>*/}
     </View>
   );
 }
