@@ -89,3 +89,24 @@ export const createNotification = async (idPatient: number, message: string, typ
   });
   return response.data;
 };
+
+// Ophtalmologie
+export const fetchDossierOphtalmologique = async (idPatient: number) => {
+  const response = await API.get(`/ophtalmologie/dossier/patient/${idPatient}`);
+  return response.data;
+};
+
+export const fetchConsultationDetail = async (idConsultation: number) => {
+  const response = await API.get(`/ophtalmologie/consultation/${idConsultation}`);
+  return response.data;
+};
+
+export const createConsultationOphtalmologique = async (consultationData: any) => {
+  const response = await API.post('/ophtalmologie/consultation', consultationData);
+  return response.data;
+};
+
+export const createPrescriptionOphtalmologique = async (prescriptionData: any) => {
+  const response = await API.post('/ophtalmologie/prescription', prescriptionData);
+  return response.data;
+};
