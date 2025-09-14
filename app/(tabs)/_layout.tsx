@@ -29,22 +29,30 @@ export default function TabsLayout() {
         }} 
       />
       <Tabs.Screen 
-        name="profil" 
-        options={{ 
-          title: "Profil",
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person" size={size} color={color} />
-          ),
-        }} 
-      />
-      <Tabs.Screen 
         name="notifications" 
         options={{ 
           title: "Notifications",
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="notifications" size={size} color={color} />
           ),
-          // Le badge sera géré dans le composant lui-même
+        }} 
+      />
+      <Tabs.Screen 
+        name="historique" 
+        options={{ 
+          title: "Historiques",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="document-text" size={size} color={color} />
+          ),
+        }} 
+      />
+      <Tabs.Screen 
+        name="profil" 
+        options={{ 
+          title: "Profil",
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person" size={size} color={color} />
+          ),
         }} 
       />
     </Tabs>
