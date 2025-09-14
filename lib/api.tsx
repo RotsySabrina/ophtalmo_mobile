@@ -31,14 +31,14 @@ export const fetchMedecins = async () => {
   return response.data;
 };
 
-export const fetchCreneauxParMedecin = async (id_medecin: string) => {
+export const fetchCreneauxParMedecin = async (id_medecin: number) => {
   const res = await API.get("/rendez_vous/creneaux", {
     params: { id_medecin },
   });
   return res.data;
 };
 
-export const addRdv = async (id_patient: string,id_medecin: string, date_heure: string) => {
+export const addRdv = async (id_patient: number,id_medecin: number, date_heure: string) => {
   const res = await API.post("/rendez_vous", {
      id_patient, id_medecin, date_heure
   });
