@@ -2,8 +2,9 @@ import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Alert } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { Calendar } from 'react-native-calendars';
-import { fetchMedecins, fetchCreneauxParMedecin, addRdv} from "../api";
+import { fetchMedecins, fetchCreneauxParMedecin, addRdv} from "../../lib/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
 
 export default function RendezVous() {
   const [medecins, setMedecins] = useState<any[]>([]);
@@ -14,6 +15,8 @@ export default function RendezVous() {
   const [creneauxDisponibles, setCreneauxDisponibles] = useState<any[]>([]);
 
   const [userId, setUserId] = useState<number | null>(null);
+
+  const router = useRouter();
 
   useEffect(() => {
     const loadUser = async () => {
@@ -90,8 +93,17 @@ export default function RendezVous() {
                 fullDateHeure
               );
 
-              console.log("Rendez-vous créé :", newRdv);
-              Alert.alert("Succès", "Votre rendez-vous a été confirmé !");
+              router.push({
+                pathname: '/confirmation',
+                params: {
+                  date: selectedDate,
+                  heure: timePart.substring(0, 5),
+                  medecin: medecins.find(m => m.id === selectedMedecin)?.nom,
+                  rdvId: newRdv.rendezVous.id
+                }
+              });
+              //console.log("Rendez-vous créé :", newRdv);
+              //Alert.alert("Succès", "Votre rendez-vous a été confirmé !");
               // Optionnel : naviguer vers une autre page ou rafraîchir la liste des rendez-vous
             } catch (error) {
               console.error("Échec de la création du rendez-vous ....:", error);

@@ -72,17 +72,6 @@ export default function ProfilScreen() {
           <Text style={styles.menuText}>✏️ Modifier mon profil</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuText}>🔔 Notifications</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuText}>ℹ️ À propos</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.menuItem}>
-          <Text style={styles.menuText}>📞 Support</Text>
-        </TouchableOpacity>
       </View>
 
       <TouchableOpacity 

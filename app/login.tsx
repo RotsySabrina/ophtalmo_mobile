@@ -1,17 +1,40 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { Alert, Button, StyleSheet, Text, TextInput, View } from "react-native";
+import React, { useState, useEffect } from "react";
+import { Alert, Button, StyleSheet, Text, TextInput, View, ActivityIndicator } from "react-native";
 import { useAuth } from "../hooks/useAuth";
-import { login } from "./api";
+import { login } from "../lib/api";
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   const router = useRouter();
-  const { user, setUser, logout, loading } = useAuth();
+  const { user, setUser, loading } = useAuth();
+
+  // Vérifier si l'utilisateur est déjà connecté au chargement
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = await AsyncStorage.getItem("token");
+        const userData = await AsyncStorage.getItem("user");
+        
+        if (token && userData) {
+          setUser(JSON.parse(userData));
+          // Navigation dans un useEffect, pas pendant le rendu
+          router.replace("/(tabs)");
+        }
+      } catch (error) {
+        console.error("Erreur vérification auth:", error);
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   const handleLogin = async () => {
     if (!email || !motDePasse) {
@@ -29,7 +52,8 @@ export default function LoginScreen() {
       setUser(user);
 
       Alert.alert("✅ Connexion réussie", `Bienvenue ${user.prenom} ${user.nom}`);
-
+      
+      // Navigation après l'action utilisateur, pas pendant le rendu
       router.replace("/(tabs)");
     } catch (error: any) {
       console.log("Erreur détaillée login:", error.response?.data || error.message || error);
@@ -42,10 +66,24 @@ export default function LoginScreen() {
     }
   };
 
-  // Déjà connecté → redirige automatiquement
+  // Afficher un indicateur de chargement pendant la vérification de l'authentification
+  if (isCheckingAuth || loading) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text style={styles.loadingText}>Vérification de la session...</Text>
+      </View>
+    );
+  }
+
+  // Si l'utilisateur est connecté mais pas encore redirigé
   if (user) {
-    router.replace("/(tabs)");
-    return null;
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#0000ff" />
+        <Text style={styles.loadingText}>Redirection...</Text>
+      </View>
+    );
   }
 
   return (
@@ -69,7 +107,10 @@ export default function LoginScreen() {
       />
 
       {isLoading ? (
-        <Text style={styles.loading}>Connexion en cours...</Text>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#0000ff" />
+          <Text style={styles.loadingText}>Connexion en cours...</Text>
+        </View>
       ) : (
         <Button title="Se connecter" onPress={handleLogin} disabled={!email || !motDePasse} />
       )}
@@ -78,8 +119,20 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, justifyContent: "center" },
-  title: { fontSize: 22, marginBottom: 20, textAlign: "center" },
+  container: { 
+    flex: 1, 
+    padding: 20, 
+    justifyContent: "center" 
+  },
+  center: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  title: { 
+    fontSize: 22, 
+    marginBottom: 20, 
+    textAlign: "center" 
+  },
   input: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -87,5 +140,9 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     borderRadius: 5,
   },
-  loading: { textAlign: "center", marginTop: 10, fontStyle: "italic" },
+  loadingText: { 
+    textAlign: "center", 
+    marginTop: 10, 
+    fontStyle: "italic" 
+  },
 });
